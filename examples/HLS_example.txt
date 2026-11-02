@@ -1,0 +1,6 @@
+w = a – d
+x = a + b
+a = w * x
+x = w + d
+w = d – x
+a = w * b
