@@ -9,7 +9,8 @@ from hls.ssa import to_ssa
 from hls.dag import build_dag
 from srcs.svg_gen import dag_to_svg
 from hls.schedule.asap import asap
-# from hls.schedule import alap, constrained_asap, constrained_alap
+from hls.schedule.alap import alap, sequential_alap
+# from hls.schedule import constrained_asap, constrained_alap
 
 
 
@@ -25,7 +26,9 @@ def run(text: str, args: argparse.Namespace):
     if args.export_dag:
         export(args, "dag", dag_to_svg(dag), ext="svg")
 
-    schedules = {"asap": asap(dag)}
+    schedules = {"asap": asap(dag),
+                 "alap": alap(dag),
+                 "HW3 alap": sequential_alap(dag)}
     if args.verbose:
         for name, cycles in schedules.items():
             print(f"{name.upper()} schedule:\n{format_schedule(dag, cycles)}")
