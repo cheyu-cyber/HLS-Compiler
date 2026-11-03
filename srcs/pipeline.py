@@ -6,7 +6,7 @@ import os
 import sys
 from hls.parser import parse_hls
 from hls.ssa import to_ssa
-# from hls.dag import build_dag
+from hls.dag import build_dag
 # from hls.schedule import asap, alap, constrained_asap, constrained_alap
 
 
@@ -14,7 +14,7 @@ from hls.ssa import to_ssa
 def run(text: str, args: argparse.Namespace):
     equations = parse_hls(text)
     ssa = to_ssa(equations)
-    # build_dag()
+    dag = build_dag(ssa)
     # schedule()
     # report()
     return None
