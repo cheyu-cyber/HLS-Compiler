@@ -13,25 +13,30 @@ def argparser(argv=None):
         prog="hlsc", description="High-Level Synthesis Compiler")
     parser.add_argument("file", type=Path,
                         help="input equation file, one equation per line")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="print the SSA form and the schedules")
     parser.add_argument("--export-ssa", action="store_true",
                         help="export the SSA form as a text file")
-    parser.add_argument("-s", "--schedule", default="asap",
-                        choices=["asap", "casap", "alap", "calap", "custom"],
-                        help="scheduling mode: asap, constrained asap, alap, "
-                             "constrained alap, custom (default: %(default)s)")
-    parser.add_argument("--adders", type=int, metavar="N",
-                        help="max adders (casap/calap)")
-    parser.add_argument("--subtractors", type=int, metavar="N",
-                        help="max subtractors (casap/calap)")
-    parser.add_argument("--multipliers", type=int, metavar="N",
-                        help="max multipliers (casap/calap)")
+    parser.add_argument("--export-dag", action="store_true",
+                        help="export the DAG as an SVG picture")
+    parser.add_argument("--export-all", action="store_true",
+                        help="export everything (same as all --export-* flags)")
+    parser.add_argument("--adders", type=int, default=1, metavar="N",
+                        help="max adders (constrained asap/alap, default: %(default)s)")
+    parser.add_argument("--subtractors", type=int, default=1, metavar="N",
+                        help="max subtractors (constrained asap/alap, default: %(default)s)")
+    parser.add_argument("--multipliers", type=int, default=1, metavar="N",
+                        help="max multipliers (constrained asap/alap, default: %(default)s)")
     parser.add_argument("--latency", type=int, metavar="N",
-                        help="latency bound for alap/calap (default: asap latency)")
+                        help="latency bound for alap (default: asap latency)")
     parser.add_argument("--width", type=int, default=8, metavar="BITS",
                         help="datapath bit-width (default: %(default)s)")
     parser.add_argument("-o", "--out-dir", type=Path, default=Path("output_log"),
                         help="output directory (default: %(default)s)")
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.export_all:
+        args.export_ssa = args.export_dag = True
+    return args
 
 
 def main(argv=None):
