@@ -16,6 +16,7 @@ def constrained_asap(dag: DAG, adders: int, subtractors: int, multipliers: int) 
         limit = constraints.get(operation)
         earliest = 1 + max((cycle[p] for p in node.preds), default=0)
 
+        # keeps track of operations used by type and per cycle to enforce constraints
         if limit is not None:
             if limit == 0:
                 raise ValueError(f"No resources available for operation {operation!r}")
