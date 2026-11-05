@@ -24,6 +24,7 @@ def parse_hls(text: str) -> list[Equation]:
     for line in text.splitlines():
         if not line.strip():
             continue
+        line = line.replace("–", "-")
         for kw in KEYWORDS:
             line = line.replace(kw, f" {kw} ")
         dest, _, lhs, op, rhs = line.split()
