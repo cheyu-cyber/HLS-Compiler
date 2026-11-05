@@ -47,9 +47,6 @@ def main(argv=None):
     except OSError as exc:
         print(f"hlsc: error: cannot read {args.file}: {exc}", file=sys.stderr)
         return 1
-    except ValueError as exc:
-        print(f"hlsc: error: {exc}", file=sys.stderr)
-        return 1
     return 0
 
 
