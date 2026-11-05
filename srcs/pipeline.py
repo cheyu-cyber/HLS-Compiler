@@ -10,8 +10,8 @@ from hls.dag import build_dag
 from srcs.svg_gen import dag_to_svg
 from hls.schedule.asap import asap
 from hls.schedule.alap import alap, sequential_alap
-# from hls.schedule import constrained_asap, constrained_alap
-
+from hls.schedule.constrained_asap import constrained_asap
+from hls.schedule.constrained_alap import constrained_alap
 
 
 def run(text: str, args: argparse.Namespace):
@@ -30,18 +30,12 @@ def run(text: str, args: argparse.Namespace):
     if any(limit is not None and limit < 0 for limit in limits):
         raise ValueError("Resource limits must be non-negative")
 
-    if all(limit is not None for limit in limits):
-        from hls.schedule.constrained_asap import constrained_asap
-        from hls.schedule.constrained_alap import constrained_alap
-        schedules = {"constrained asap": constrained_asap(dag, limits[0], limits[1], limits[2]),
-                     "constrained alap": constrained_alap(dag, limits[0], limits[1], limits[2])}
-    elif all(limit is None for limit in limits):
-        schedules = {"asap": asap(dag),
-                     "alap": alap(dag),
-                     "HW3 alap": sequential_alap(dag)}
-    else:
-        raise ValueError("Either all or none of the resource limits must be specified")
-
+    schedules = {"asap": asap(dag),
+                 "alap": alap(dag),
+                 "HW3 alap": sequential_alap(dag),
+                 "constrained asap": constrained_asap(dag, limits[0], limits[1], limits[2]),
+                 "constrained alap": constrained_alap(dag, limits[0], limits[1], limits[2])}
+    
     if args.verbose:
         for name, cycles in schedules.items():
             print(f"{name.upper()} schedule:\n{format_schedule(dag, cycles)}")
