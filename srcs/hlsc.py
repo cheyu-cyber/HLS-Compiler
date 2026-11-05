@@ -21,11 +21,11 @@ def argparser(argv=None):
                         help="export the DAG as an SVG picture")
     parser.add_argument("--export-all", action="store_true",
                         help="export everything (same as all --export-* flags)")
-    parser.add_argument("--adders", type=int, default=1, metavar="N",
+    parser.add_argument("--adders", type=int, metavar="N",
                         help="max adders (constrained asap/alap, default: %(default)s)")
-    parser.add_argument("--subtractors", type=int, default=1, metavar="N",
+    parser.add_argument("--subtractors", type=int, metavar="N",
                         help="max subtractors (constrained asap/alap, default: %(default)s)")
-    parser.add_argument("--multipliers", type=int, default=1, metavar="N",
+    parser.add_argument("--multipliers", type=int, metavar="N",
                         help="max multipliers (constrained asap/alap, default: %(default)s)")
     parser.add_argument("--latency", type=int, metavar="N",
                         help="latency bound for alap (default: asap latency)")
@@ -46,6 +46,9 @@ def main(argv=None):
         results = pipeline.run(text,args)
     except OSError as exc:
         print(f"hlsc: error: cannot read {args.file}: {exc}", file=sys.stderr)
+        return 1
+    except ValueError as exc:
+        print(f"hlsc: error: {exc}", file=sys.stderr)
         return 1
     return 0
 
