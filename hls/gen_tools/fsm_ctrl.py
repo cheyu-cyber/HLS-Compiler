@@ -36,8 +36,8 @@ def build_fsm_plan(datapath: DatapathPlan) -> FSMPlan:
         for node in nodes:
             unit = datapath.node_to_unit[node]
             unit_selections[unit.name] = node
-            writes.append(datapath.registers[node])
-        unit_selections_by_cycle[cycle] = unit_selections
+            writes.append(datapath.registers[node])  # add the destination register for this node to the list of writes
+        unit_selections_by_cycle[cycle] = unit_selections  # map the unit selections for this cycle
         register_writes_by_cycle[cycle] = tuple(writes)
 
     return FSMPlan(

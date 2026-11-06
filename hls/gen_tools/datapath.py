@@ -54,7 +54,9 @@ def _validate_schedule(dag: DAG, schedule: dict[str, int]) -> None:
 def operation_counts_by_cycle(
     dag: DAG, schedule: dict[str, int]
 ) -> dict[int, dict[str, int]]:
-    """Count scheduled operations by cycle and operator."""
+    """Count scheduled operations by cycle and operator.
+    counts is a dictionary like:
+    {1: {"+": 2, "-": 1, "*": 0}, 2: {"+": 0, "-": 1, "*": 1}}"""
     _validate_schedule(dag, schedule)
     counts: dict[int, dict[str, int]] = {}
     for name, node in dag.nodes.items():
@@ -79,19 +81,21 @@ def build_datapath_plan(
     counts = operation_counts_by_cycle(dag, schedule)
     latency = max(schedule.values(), default=0)
     operations_by_cycle = {
-        cycle: tuple(name for name in dag.nodes if schedule[name] == cycle)
+        cycle: tuple(name for name in dag.nodes if schedule[name] == cycle)  # all node names scheduled for this cycle
         for cycle in range(1, latency + 1)
-    }
+    }  # something like: operations_by_cycle = {1: ("a",), 2: ("b", "c"), 3: (), 4: ("d",)}
 
+    # create a hardware inventory
     units_by_operator: dict[str, tuple[FunctionalUnit, ...]] = {}
     for operator in OPERATORS:
         unit_count = max(
             (cycle_counts[operator] for cycle_counts in counts.values()), default=0
-        )
+        )  # count maximum number of units needed for this operator across all cycles
         units_by_operator[operator] = tuple(
             FunctionalUnit(operator, index) for index in range(unit_count)
-        )
+        )  # create the units for this operator
 
+    # build out the mapping of nodes to units and their inputs
     node_to_unit: dict[str, FunctionalUnit] = {}
     operation_inputs: dict[str, tuple[str, str]] = {}
     for names in operations_by_cycle.values():
@@ -103,14 +107,16 @@ def build_datapath_plan(
             assigned[operator] += 1
             operation_inputs[name] = (node.eq.lhs, node.eq.rhs)
 
+    # populate the register mapping for all nodes, inputs, and outputs
     registers = {name: f"reg_{index}" for index, name in enumerate(dag.nodes)}
+
     return DatapathPlan(
         width=width,
         schedule=dict(schedule),
         operations_by_cycle=operations_by_cycle,
         operation_counts=counts,
         units_by_operator=units_by_operator,
-        node_to_unit=node_to_unit,
+        node_to_unit=node_to_unit,  # ex: {"Z_0": FunctionalUnit(operator="-", index=0)}
         operation_inputs=operation_inputs,
         registers=registers,
         inputs=tuple(dag.inputs),
