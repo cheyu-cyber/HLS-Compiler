@@ -8,6 +8,8 @@ from hls.gen_tools.fsm_ctrl import FSMPlan
 
 _VERILOG_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_$]*\Z")
 _RESERVED_PORTS = {"clk", "reset", "start", "done"}
+_OPERATOR_MODULES = {"+": "adder", "-": "subtractor", "*": "multiplier"}
+_INPUT_WIDTH = 3
 
 
 # check if a module name or signal name is valid in Verilog
@@ -23,12 +25,15 @@ def generate_verilog(
 ) -> str:
     """Return a Verilog module implementing the supplied datapath and FSM.
 
-    The module exposes inputs as ``in_<name>`` and results as ``out_<name>``.
-    ``WIDTH`` is a top-level parameter defaulting to the datapath plan's width.
-    Arithmetic operators are written directly so synthesis can infer the
-    corresponding hardware units.
+    The module exposes 3-bit inputs as ``in_<name>`` and results as
+    ``out_<name>``. ``WIDTH`` is a top-level parameter defaulting to the
+    datapath plan's internal width, which must be between 3 and 6.
+    Each allocated functional unit instantiates the matching module from
+    ``rtl/lib``.
     """
     _validate_identifier(module_name, "Module name")
+    if not _INPUT_WIDTH <= datapath.width <= 6:
+        raise ValueError("Datapath width must be between 3 and 6 bits")
 
     for name in (*datapath.inputs, *datapath.outputs):
         _validate_identifier(name, "DAG signal")
@@ -65,7 +70,7 @@ def generate_verilog(
         "input wire start",
         "output wire done",
     ] + [
-        f"input wire [WIDTH-1:0] in_{name}"
+        f"input wire [{_INPUT_WIDTH - 1}:0] in_{name}"
         for name in datapath.inputs
     ] + [
         f"output wire [WIDTH-1:0] out_{name}"
@@ -99,6 +104,14 @@ def generate_verilog(
         _validate_identifier(register, "Register name")
         lines.append(f"reg [WIDTH-1:0] {register};")
 
+    for name in datapath.inputs:
+        lines.extend(
+            (
+                f"wire [WIDTH-1:0] extended_{name};",
+                f"assign extended_{name} = in_{name};",
+            )
+        )
+
     for unit in units:
         lines.extend(
             (
@@ -111,8 +124,9 @@ def generate_verilog(
         if operator not in OPERATORS:
             raise ValueError(f"Unsupported functional unit operator {operator!r}")
         lines.append(
-            f"assign {unit.name}_result = {unit.name}_lhs "
-            f"{operator} {unit.name}_rhs;"
+            f"{_OPERATOR_MODULES[operator]} #(.WIDTH(WIDTH)) {unit.name} ("
+            f".a({unit.name}_lhs), .b({unit.name}_rhs), "
+            f".result({unit.name}_result));"
         )
 
     for output in datapath.outputs:
@@ -144,7 +158,7 @@ def generate_verilog(
                     if operand in datapath.registers:
                         signal = datapath.registers[operand]
                     elif operand in datapath.inputs:
-                        signal = f"in_{operand}"
+                        signal = f"extended_{operand}"
                     else:
                         raise ValueError(
                             f"Operand {operand!r} for node {node!r} "

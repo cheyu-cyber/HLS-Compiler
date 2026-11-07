@@ -68,15 +68,16 @@ def operation_counts_by_cycle(
 
 
 def build_datapath_plan(
-    dag: DAG, schedule: dict[str, int], width: int = 8
+    dag: DAG, schedule: dict[str, int], width: int = 6
 ) -> DatapathPlan:
     """Bind scheduled operations to the minimum reusable units for that schedule.
 
     Unit indices are assigned in DAG order within each cycle. Values currently
     receive one register each; liveness-based register sharing can be added later.
+    Inputs are 3 bits wide, and the internal datapath width may range from 3 to 6.
     """
-    if width < 1:
-        raise ValueError("Datapath width must be positive")
+    if not 3 <= width <= 6:
+        raise ValueError("Datapath width must be between 3 and 6 bits")
 
     counts = operation_counts_by_cycle(dag, schedule)
     latency = max(schedule.values(), default=0)
