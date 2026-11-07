@@ -1,0 +1,5 @@
+p = a * b
+q = c * d
+r = q + a
+s = r - b
+t = s + p

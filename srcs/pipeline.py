@@ -12,6 +12,7 @@ from hls.schedule.asap import asap
 from hls.schedule.alap import alap, sequential_alap
 from hls.schedule.constrained_asap import constrained_asap
 from hls.schedule.constrained_alap import constrained_alap
+from hls.schedule.custom_sched import custom
 from hls.gen_tools.datapath import build_datapath_plan
 from hls.gen_tools.fsm_ctrl import build_fsm_plan
 from hls.gen_tools.verilog_gen import generate_verilog
@@ -37,7 +38,8 @@ def run(text: str, args: argparse.Namespace):
                  "alap": alap(dag),
                  "HW3_alap": sequential_alap(dag),
                  "constrained_asap": constrained_asap(dag, limits[0], limits[1], limits[2]),
-                 "constrained_alap": constrained_alap(dag, limits[0], limits[1], limits[2])}
+                 "constrained_alap": constrained_alap(dag, limits[0], limits[1], limits[2]),
+                 "custom": custom(dag, limits[0], limits[1], limits[2])}
 
     if args.verbose:
         for name, cycles in schedules.items():
