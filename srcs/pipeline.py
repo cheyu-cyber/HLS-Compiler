@@ -12,6 +12,9 @@ from hls.schedule.asap import asap
 from hls.schedule.alap import alap, sequential_alap
 from hls.schedule.constrained_asap import constrained_asap
 from hls.schedule.constrained_alap import constrained_alap
+from hls.gen_tools.datapath import build_datapath_plan
+from hls.gen_tools.fsm_ctrl import build_fsm_plan
+from hls.gen_tools.verilog_gen import generate_verilog
 
 
 def run(text: str, args: argparse.Namespace):
@@ -32,14 +35,22 @@ def run(text: str, args: argparse.Namespace):
 
     schedules = {"asap": asap(dag),
                  "alap": alap(dag),
-                 "HW3 alap": sequential_alap(dag),
-                 "constrained asap": constrained_asap(dag, limits[0], limits[1], limits[2]),
-                 "constrained alap": constrained_alap(dag, limits[0], limits[1], limits[2])}
-    
+                 "HW3_alap": sequential_alap(dag),
+                 "constrained_asap": constrained_asap(dag, limits[0], limits[1], limits[2]),
+                 "constrained_alap": constrained_alap(dag, limits[0], limits[1], limits[2])}
+
     if args.verbose:
         for name, cycles in schedules.items():
             print(f"{name.upper()} schedule:\n{format_schedule(dag, cycles)}")
     # report()
+
+    datapath_plan = build_datapath_plan(dag, schedules[args.make_schedule], args.width)
+    export(args, "datapath", str(datapath_plan))
+    fsm_plan = build_fsm_plan(datapath_plan)
+    export(args, "fsm", str(fsm_plan))
+    verilog = generate_verilog(datapath_plan, fsm_plan)
+    export(args, "verilog", verilog, ext="v")
+
     return None
 
 

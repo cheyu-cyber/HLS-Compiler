@@ -29,8 +29,10 @@ def argparser(argv=None):
                         help="max multipliers (constrained asap/alap, default: %(default)s)")
     parser.add_argument("--latency", type=int, metavar="N",
                         help="latency bound for alap (default: asap latency)")
-    parser.add_argument("--width", type=int, default=8, metavar="BITS",
+    parser.add_argument("--width", type=int, default=3, metavar="BITS",
                         help="datapath bit-width (default: %(default)s)")
+    parser.add_argument("--make-schedule", type=str, default="constrained_asap", metavar="STRING",
+                        help="schedule to create datapath (default: %(default)s)")
     parser.add_argument("-o", "--out-dir", type=Path, default=Path("output_log"),
                         help="output directory (default: %(default)s)")
     args = parser.parse_args(argv)
