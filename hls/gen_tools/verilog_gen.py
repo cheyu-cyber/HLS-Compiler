@@ -7,9 +7,11 @@ from hls.gen_tools.datapath import DatapathPlan, OPERATORS
 from hls.gen_tools.fsm_ctrl import FSMPlan
 
 _VERILOG_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_$]*\Z")
-_RESERVED_PORTS = {"clk", "reset", "start", "done"}
 _OPERATOR_MODULES = {"+": "adder", "-": "subtractor", "*": "multiplier"}
 _INPUT_WIDTH = 3
+_SWITCH_GROUPS = 4      # in0..in3 come from SW[11:0]; extra inputs are hardcoded
+_HARDCODED_VALUE = 1
+_VIEW_SLOTS = 16        # sel (SW[15:12]) picks one of these for the display
 
 
 # check if a module name or signal name is valid in Verilog
@@ -25,26 +27,22 @@ def generate_verilog(
 ) -> str:
     """Return a Verilog module implementing the supplied datapath and FSM.
 
-    The module exposes 3-bit inputs as ``in_<name>`` and results as
-    ``out_<name>``. ``WIDTH`` is a top-level parameter defaulting to the
-    datapath plan's internal width, which must be between 3 and 6.
+    The module has fixed ports so ``rtl/top.v`` never changes: 3-bit switch
+    inputs ``in0``..``in3`` (inputs in alphabetical order), ``en`` to advance
+    one cycle per button press, and ``sel`` choosing which functional unit or
+    register drives ``view``. ``WIDTH`` is a top-level parameter defaulting to
+    the datapath plan's internal width, which must be between 3 and 16.
     Each allocated functional unit instantiates the matching module from
     ``rtl/lib``.
     """
     _validate_identifier(module_name, "Module name")
-    if not _INPUT_WIDTH <= datapath.width <= 6:
-        raise ValueError("Datapath width must be between 3 and 6 bits")
+    if not _INPUT_WIDTH <= datapath.width <= 16:
+        raise ValueError("Datapath width must be between 3 and 16 bits")
 
     for name in (*datapath.inputs, *datapath.outputs):
         _validate_identifier(name, "DAG signal")
     for state_name in (fsm.idle_state, fsm.done_state, *fsm.cycle_states.values()):
         _validate_identifier(state_name, "FSM state")
-
-    all_ports = {
-        f"in_{name}" for name in datapath.inputs
-    } | {f"out_{name}" for name in datapath.outputs} | _RESERVED_PORTS
-    if len(all_ports) != len(datapath.inputs) + len(datapath.outputs) + len(_RESERVED_PORTS):
-        raise ValueError("Generated Verilog port names are not unique")
 
     units = [
         unit
@@ -67,16 +65,21 @@ def generate_verilog(
     port_lines = [
         "input wire clk",
         "input wire reset",
-        "input wire start",
+        "input wire en",
+        f"input wire [{_INPUT_WIDTH - 1}:0] in0",
+        f"input wire [{_INPUT_WIDTH - 1}:0] in1",
+        f"input wire [{_INPUT_WIDTH - 1}:0] in2",
+        f"input wire [{_INPUT_WIDTH - 1}:0] in3",
+        "input wire [3:0] sel",
+        "output reg [15:0] view",
+        "output reg [4:0] state",
         "output wire done",
-    ] + [
-        f"input wire [{_INPUT_WIDTH - 1}:0] in_{name}"
-        for name in datapath.inputs
-    ] + [
-        f"output wire [WIDTH-1:0] out_{name}"
-        for name in datapath.outputs
     ]
+    switch_inputs = sorted(datapath.inputs)
     lines = [
+        "// switches: " + ", ".join(
+            f"in{index} = {name}" for index, name in enumerate(switch_inputs[:_SWITCH_GROUPS])
+        ),
         f"module {module_name} #(",
         f"    parameter integer WIDTH = {datapath.width}",
         ") (",
@@ -92,8 +95,7 @@ def generate_verilog(
     state_names.append(fsm.done_state)
     if len(set(state_names)) != len(state_names):
         raise ValueError("FSM state names must be unique")
-    state_width = max(1, (len(state_names) - 1).bit_length())
-    lines.append(f"reg [{state_width - 1}:0] state;")
+    state_width = 5  # state is a 5-bit output port (shown on the display)
     for index, state_name in enumerate(state_names):
         lines.append(
             f"localparam [{state_width - 1}:0] {state_name} = "
@@ -104,11 +106,12 @@ def generate_verilog(
         _validate_identifier(register, "Register name")
         lines.append(f"reg [WIDTH-1:0] {register};")
 
-    for name in datapath.inputs:
+    for index, name in enumerate(switch_inputs):
+        source = f"in{index}" if index < _SWITCH_GROUPS else str(_HARDCODED_VALUE)
         lines.extend(
             (
                 f"wire [WIDTH-1:0] extended_{name};",
-                f"assign extended_{name} = in_{name};",
+                f"assign extended_{name} = {source};",
             )
         )
 
@@ -129,10 +132,13 @@ def generate_verilog(
             f".result({unit.name}_result));"
         )
 
-    for output in datapath.outputs:
-        if output not in datapath.registers:
-            raise ValueError(f"Output node {output!r} has no result register")
-        lines.append(f"assign out_{output} = {datapath.registers[output]};")
+    # observability: sel shows a functional unit's result, then each register
+    views = [(f"{unit.name}_result", unit.name) for unit in units]
+    views += [(register, node) for node, register in datapath.registers.items()]
+    lines.extend(("always @* begin", "    case (sel)"))
+    for index, (signal, label) in enumerate(views[:_VIEW_SLOTS]):
+        lines.append(f"        4'd{index}: view = {signal};  // {label}")
+    lines.extend(("        default: view = 16'd0;", "    endcase", "end"))
     lines.append("assign done = (state == " + fsm.done_state + ");")
 
     if units:
@@ -177,20 +183,18 @@ def generate_verilog(
     )
     for register in datapath.registers.values():
         lines.append(f"        {register} <= {{WIDTH{{1'b0}}}};")
-    lines.extend(("    end else begin", "        case (state)"))
+    lines.extend(("    end else if (en) begin  // one step per button press", "        case (state)"))
     if cycle_count == 0:
         lines.extend(
             (
-                f"            {fsm.idle_state}: state <= start ? "
-                f"{fsm.done_state} : {fsm.idle_state};",
+                f"            {fsm.idle_state}: state <= {fsm.done_state};",
             )
         )
     else:
         first_state = fsm.cycle_states[1]
         lines.extend(
             (
-                f"            {fsm.idle_state}: state <= start ? "
-                f"{first_state} : {fsm.idle_state};",
+                f"            {fsm.idle_state}: state <= {first_state};",
             )
         )
         for cycle in sorted(expected_cycles):
