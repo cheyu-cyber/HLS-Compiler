@@ -20,6 +20,15 @@ def _validate_identifier(name: str, description: str) -> None:
         raise ValueError(f"{description} {name!r} is not a valid Verilog identifier")
 
 
+# what sel 0, 1, 2... shows: each functional unit's result, then each register
+# (shared with testbench_gen so both use the same slot numbers)
+def view_slots(datapath: DatapathPlan) -> list[tuple[str, str]]:
+    units = [unit for operator in OPERATORS for unit in datapath.units_by_operator.get(operator, ())]
+    views = [(f"{unit.name}_result", unit.name) for unit in units]
+    views += [(register, node) for node, register in datapath.registers.items()]
+    return views[:_VIEW_SLOTS]
+
+
 def generate_verilog(
     datapath: DatapathPlan,
     fsm: FSMPlan,
@@ -133,10 +142,8 @@ def generate_verilog(
         )
 
     # observability: sel shows a functional unit's result, then each register
-    views = [(f"{unit.name}_result", unit.name) for unit in units]
-    views += [(register, node) for node, register in datapath.registers.items()]
     lines.extend(("always @* begin", "    case (sel)"))
-    for index, (signal, label) in enumerate(views[:_VIEW_SLOTS]):
+    for index, (signal, label) in enumerate(view_slots(datapath)):
         lines.append(f"        4'd{index}: view = {signal};  // {label}")
     lines.extend(("        default: view = 16'd0;", "    endcase", "end"))
     lines.append("assign done = (state == " + fsm.done_state + ");")

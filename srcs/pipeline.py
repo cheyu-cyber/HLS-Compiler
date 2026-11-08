@@ -16,6 +16,7 @@ from hls.schedule.custom_sched import custom
 from hls.gen_tools.datapath import build_datapath_plan
 from hls.gen_tools.fsm_ctrl import build_fsm_plan
 from hls.gen_tools.verilog_gen import generate_verilog
+from hls.gen_tools.testbench_gen import generate_testbench
 
 
 def run(text: str, args: argparse.Namespace):
@@ -52,6 +53,7 @@ def run(text: str, args: argparse.Namespace):
     export(args, "fsm", str(fsm_plan))
     verilog = generate_verilog(datapath_plan, fsm_plan)
     export(args, "verilog", verilog, ext="v")
+    export(args, "testbench", generate_testbench(datapath_plan, fsm_plan), ext="v")
 
     return None
 
