@@ -42,14 +42,18 @@ def run(text: str, args: argparse.Namespace):
                  "constrained_alap": constrained_alap(dag, limits[0], limits[1], limits[2]),
                  "custom": custom(dag, limits[0], limits[1], limits[2])}
 
+    schedule_text = "\n".join(f"{name.upper()} schedule:\n{format_schedule(dag, cycles)}"
+                              for name, cycles in schedules.items())
     if args.verbose:
-        for name, cycles in schedules.items():
-            print(f"{name.upper()} schedule:\n{format_schedule(dag, cycles)}")
+        print(schedule_text)
+    if args.export_schedule:
+        export(args, "schedule", schedule_text)
     # report()
 
     datapath_plan = build_datapath_plan(dag, schedules[args.make_schedule], args.width)
     fsm_plan = build_fsm_plan(datapath_plan)
-    export(args, "fsm_datapath", format_plan(datapath_plan, fsm_plan))
+    if args.export_datapath:
+        export(args, "datapath", format_plan(datapath_plan, fsm_plan))
     verilog = generate_verilog(datapath_plan, fsm_plan)
     export(args, "verilog", verilog, ext="v")
     export(args, "testbench", generate_testbench(datapath_plan, fsm_plan), ext="v")

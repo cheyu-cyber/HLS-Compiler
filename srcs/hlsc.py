@@ -19,6 +19,10 @@ def argparser(argv=None):
                         help="export the SSA form as a text file")
     parser.add_argument("--export-dag", action="store_true",
                         help="export the DAG as an SVG picture")
+    parser.add_argument("--export-schedule", action="store_true",
+                        help="export all schedules as a text file")
+    parser.add_argument("--export-datapath", action="store_true",
+                        help="export the FSM/datapath table as a text file")
     parser.add_argument("--export-all", action="store_true",
                         help="export everything (same as all --export-* flags)")
     parser.add_argument("--adders", type=int, default=1, metavar="N",
@@ -36,7 +40,7 @@ def argparser(argv=None):
                         help="output directory (default: %(default)s)")
     args = parser.parse_args(argv)
     if args.export_all:
-        args.export_ssa = args.export_dag = True
+        args.export_ssa = args.export_dag = args.export_schedule = args.export_datapath = True
     return args
 
 
