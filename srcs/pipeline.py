@@ -13,7 +13,7 @@ from hls.schedule.alap import alap, sequential_alap
 from hls.schedule.constrained_asap import constrained_asap
 from hls.schedule.constrained_alap import constrained_alap
 from hls.schedule.custom_sched import custom
-from hls.gen_tools.datapath import build_datapath_plan
+from hls.gen_tools.datapath import build_datapath_plan, OPERATORS
 from hls.gen_tools.fsm_ctrl import build_fsm_plan
 from hls.gen_tools.verilog_gen import generate_verilog
 from hls.gen_tools.testbench_gen import generate_testbench
@@ -48,9 +48,8 @@ def run(text: str, args: argparse.Namespace):
     # report()
 
     datapath_plan = build_datapath_plan(dag, schedules[args.make_schedule], args.width)
-    export(args, "datapath", str(datapath_plan))
     fsm_plan = build_fsm_plan(datapath_plan)
-    export(args, "fsm", str(fsm_plan))
+    export(args, "fsm_datapath", format_plan(datapath_plan, fsm_plan))
     verilog = generate_verilog(datapath_plan, fsm_plan)
     export(args, "verilog", verilog, ext="v")
     export(args, "testbench", generate_testbench(datapath_plan, fsm_plan), ext="v")
@@ -71,3 +70,27 @@ def format_schedule(dag, cycles: dict[str, int]) -> str:
         ops = [str(dag.nodes[name].eq) for name, cyc in cycles.items() if cyc == c]
         lines.append(f"  cycle {c}: " + ", ".join(ops))
     return "\n".join(lines)
+
+
+def format_plan(datapath, fsm) -> str:
+    # one row per FSM state (one button press), one column per functional unit
+    units = [unit.name for op in OPERATORS for unit in datapath.units_by_operator.get(op, ())]
+    nodes_by_register = {register: node for node, register in datapath.registers.items()}
+
+    rows = [["state", *units, "writes"], [fsm.idle_state, *["-"] * len(units), ""]]
+    for cycle, state in fsm.cycle_states.items():
+        selections = fsm.unit_selections_by_cycle[cycle]
+        cells = [operation(datapath, selections[unit]) if unit in selections else "-" for unit in units]
+        writes = ", ".join(f"{register} = {nodes_by_register[register]}"
+                           for register in fsm.register_writes_by_cycle[cycle])
+        rows.append([state, *cells, writes])
+    rows.append([fsm.done_state, *["-"] * len(units), ""])
+
+    widths = [max(len(row[i]) for row in rows) for i in range(len(rows[0]))]
+    return "\n".join("  ".join(cell.ljust(width) for cell, width in zip(row, widths)).rstrip()
+                     for row in rows)
+
+
+def operation(datapath, node: str) -> str:
+    lhs, rhs = datapath.operation_inputs[node]
+    return f"{node} = {lhs} {datapath.node_to_unit[node].operator} {rhs}"

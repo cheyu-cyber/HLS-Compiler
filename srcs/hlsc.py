@@ -27,8 +27,6 @@ def argparser(argv=None):
                         help="max subtractors (constrained asap/alap, default: %(default)s)")
     parser.add_argument("--multipliers", type=int, default=1, metavar="N",
                         help="max multipliers (constrained asap/alap, default: %(default)s)")
-    parser.add_argument("--latency", type=int, metavar="N",
-                        help="latency bound for alap (default: asap latency)")
     parser.add_argument("--width", type=int, choices=range(3, 17), default=16, metavar="BITS",
                         help="internal datapath width (3-16 bits; inputs are 3 bits, default: %(default)s)")
     parser.add_argument("--make-schedule", default="constrained_asap",
