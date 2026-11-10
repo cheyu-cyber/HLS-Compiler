@@ -1,0 +1,6 @@
+x = a + c
+y = b + d
+z = b + c
+x = y + z
+y = x * z
+y = b - a
