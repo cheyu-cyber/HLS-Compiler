@@ -1,6 +1,6 @@
 // 7 seg with flickering
 module seven_seg #(
-    parameter integer DIGIT_TIME = 400_000         // clocks per digit: 4 ms at 100 MHz
+    parameter integer DIGIT_TIME = 200_000         // clocks per digit: 4 ms at 100 MHz
 ) (
     input  wire        clk,
     input  wire [31:0] value,     // 8 hex digits, digit 7 on the left
