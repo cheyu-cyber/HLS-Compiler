@@ -53,10 +53,10 @@ def run(text: str, args: argparse.Namespace):
     if args.make_schedule:
         if args.make_schedule not in schedules:
             raise ValueError(f"Invalid schedule name: {args.make_schedule}")
-        
+
     datapath_plan = build_datapath_plan(dag, schedules[args.make_schedule], args.width)
     fsm_plan = build_fsm_plan(datapath_plan)
-        
+
     if args.export_datapath:
         export(args, "datapath", format_plan(datapath_plan, fsm_plan))
 

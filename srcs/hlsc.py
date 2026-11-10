@@ -44,7 +44,7 @@ def argparser(argv=None):
                         help="output directory (default: %(default)s)")
     args = parser.parse_args(argv)
     if args.export_all:
-        args.export_ssa = args.export_dag = args.export_schedule = args.export_datapath = True
+        args.export_ssa = args.export_dag = args.export_schedule = args.export_datapath = args.export_verilog = args.export_testbench = True
     return args
 
 
