@@ -6,25 +6,23 @@
 1. **High-Level Input Parsing**
 2. **Single Assignment Form**
 
-    a. Run: python -m srcs.hlsc ./examples/lecture_example.txt --export-ssa
+    a. Run: python -m srcs.hlsc ./examples/demo_example.txt --export-ssa
 
-    b. Show output_log/lecture_example_ssa.txt
+    b. Show output_log/demo_example_ssa.txt
 3. **Directed Acyclic Graph (DAG) & Scheduling**
 
-    a. Run: python -m srcs.hlsc ./examples/lecture_example.txt --export-dag --export-schedule --adders 3 --subtractors 3 --multipliers 2
+    a. Run: python -m srcs.hlsc ./examples/demo_example.txt --export-dag --export-schedule --adders 2 --subtractors 2 --multipliers 2
 
-    b. Show output_log/lecture_example_dag.svg
+    b. Show output_log/demo_example_dag.svg
 
-    c. Show output_log/lecture_example_schedule.txt 
+    c. Show output_log/demo_example_schedule.txt 
 4. **Datapath and Sequencer Logic Generation**
 
-    a. Run: python -m srcs.hlsc ./examples/lecture_example.txt --export-datapath --make-schedule constrained_alap --adders 3 --subtractors 3 --multipliers 2
+    a. Run: python -m srcs.hlsc ./examples/demo_example.txt --export-datapath --make-schedule constrained_alap --export-verilog --export-testbench --adders 2 --subtractors 2 --multipliers 2
 
-    b. Above line creates datapath based on input arg to --make-schedule, default is constrained_asap
+    b. Above line creates datapath and hardware designs based on input arg to --make-schedule, default is constrained_asap
 
-    c. Show output_log/lecture_example_datapath.txt, output_log/lecture_example_verilog.v, output_log/lecture_example_testbench.v
-
-    d. *Need images for this??*
+    c. Show output_log/demo_example_datapath.txt, output_log/demo_example_verilog.v, output_log/demo_example_testbench.v
 5. **Verilog Functional Unit Blocks**
 
     a. Show project setup in Vivado, import generated verilog and testbench

@@ -36,6 +36,10 @@ def argparser(argv=None):
     parser.add_argument("--make-schedule", default="constrained_asap",
                         choices=["asap", "alap", "HW3_alap", "constrained_asap", "constrained_alap", "custom"],
                         help="schedule to create datapath (default: %(default)s)")
+    parser.add_argument("--export-verilog", action="store_true",
+                        help="export the generated Verilog code")
+    parser.add_argument("--export-testbench", action="store_true",
+                        help="export the generated testbench code")
     parser.add_argument("-o", "--out-dir", type=Path, default=Path("output_log"),
                         help="output directory (default: %(default)s)")
     args = parser.parse_args(argv)

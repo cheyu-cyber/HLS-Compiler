@@ -50,13 +50,21 @@ def run(text: str, args: argparse.Namespace):
         export(args, "schedule", schedule_text)
     # report()
 
+    if args.make_schedule:
+        if args.make_schedule not in schedules:
+            raise ValueError(f"Invalid schedule name: {args.make_schedule}")
+        
     datapath_plan = build_datapath_plan(dag, schedules[args.make_schedule], args.width)
     fsm_plan = build_fsm_plan(datapath_plan)
+        
     if args.export_datapath:
         export(args, "datapath", format_plan(datapath_plan, fsm_plan))
-    verilog = generate_verilog(datapath_plan, fsm_plan)
-    export(args, "verilog", verilog, ext="v")
-    export(args, "testbench", generate_testbench(datapath_plan, fsm_plan), ext="v")
+
+    if args.export_verilog:
+        verilog = generate_verilog(datapath_plan, fsm_plan)
+        export(args, "verilog", verilog, ext="v")
+    if args.export_testbench:
+        export(args, "testbench", generate_testbench(datapath_plan, fsm_plan), ext="v")
 
     return None
 
